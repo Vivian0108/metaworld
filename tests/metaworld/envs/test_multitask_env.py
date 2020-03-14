@@ -223,3 +223,23 @@ def test_task_name():
 
     _, _, _, info = env.step(env.action_space.sample())
     assert info['task_name'] in task_names
+
+
+def test_task_name_in_sample_task():
+    task_names = MEDIUM_MODE_CLS_DICT['test'].keys()
+    env = ML10.get_test_tasks()
+    task = env.sample_tasks(1)[0]
+    assert task.name in task_names
+
+
+def test_from_train_task():
+    train_tasks = list(MEDIUM_MODE_CLS_DICT['train'].keys())
+    task = ML10.from_train_task(train_tasks[0])
+    assert task.all_task_names == [train_tasks[0]]
+
+
+def test_from_test_task():
+    test_tasks = list(MEDIUM_MODE_CLS_DICT['test'].keys())
+    task = ML10.from_test_task(test_tasks[0])
+    assert task.all_task_names == [test_tasks[0]]
+

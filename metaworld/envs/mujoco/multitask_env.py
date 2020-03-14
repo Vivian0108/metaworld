@@ -1,6 +1,21 @@
 import gym
 from gym.spaces import Box
 import numpy as np
+import pickle
+
+
+class TaskSpec:
+    def __init__(self, name, data):
+        self._data = data
+        self._name = name
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def name(self):
+        return self._name
 
 
 class MultiTaskEnv(gym.Env):
@@ -200,7 +215,9 @@ class MultiClassMultiTaskEnv(MultiTaskEnv):
             else:
                 raise NotImplementedError
 
-    def set_task(self, task):
+    def set_task(self, task_spec):
+        task = pickle.loads(task_spec.data)
+
         if self._sample_goals:
             assert isinstance(task, dict)
             t = task['task']
@@ -223,13 +240,16 @@ class MultiClassMultiTaskEnv(MultiTaskEnv):
                 self._task_envs[t % len(self._task_envs)].sample_goals_(1)[0]
                 for t in tasks
             ]
-            tasks_with_goal = [
-                dict(task=t, goal=g)
-                for t, g in zip(tasks, goals)
+            task_names = [
+                self._task_names[t % len(self._task_envs)]
+                for t in tasks
             ]
-            return tasks_with_goal
-        else:
-            return tasks
+            tasks_with_goal = [
+                dict(task=t, goal=g, name=n)
+                for t, g, n in zip(tasks, goals, task_names)
+            ]
+            tasks = tasks_with_goal
+        return [TaskSpec(t['name'], pickle.dumps(t)) for t in tasks]
 
     def step(self, action):
         obs, reward, done, info = super().step(action)

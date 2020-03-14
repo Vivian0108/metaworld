@@ -217,16 +217,13 @@ class MultiClassMultiTaskEnv(MultiTaskEnv):
 
     def set_task(self, task_spec):
         task = pickle.loads(task_spec.data)
-
+        assert isinstance(task, dict)
+        self._active_task = task['task'] % len(self._task_envs)
+        
         if self._sample_goals:
-            assert isinstance(task, dict)
-            t = task['task']
             g = task['goal']
-            self._active_task = t % len(self._task_envs)
             # TODO: remove underscore
             self.active_env.set_goal_(g)
-        else:
-            self._active_task = task % len(self._task_envs)
 
     def sample_tasks(self, meta_batch_size):
         if self._sampled_all:
@@ -235,17 +232,21 @@ class MultiClassMultiTaskEnv(MultiTaskEnv):
         else:
             tasks = np.random.randint(
                 0, self.num_tasks, size=meta_batch_size).tolist()
+        task_names = [
+            self._task_names[t % len(self._task_envs)]
+            for t in tasks
+        ]
+        tasks = [
+            dict(task=i, name=n)
+            for i, n in zip(tasks, task_names)
+        ]
         if self._sample_goals:
             goals = [
-                self._task_envs[t % len(self._task_envs)].sample_goals_(1)[0]
-                for t in tasks
-            ]
-            task_names = [
-                self._task_names[t % len(self._task_envs)]
+                self._task_envs[t['task'] % len(self._task_envs)].sample_goals_(1)[0]
                 for t in tasks
             ]
             tasks_with_goal = [
-                dict(task=t, goal=g, name=n)
+                dict(task=t['task'], goal=g, name=n)
                 for t, g, n in zip(tasks, goals, task_names)
             ]
             tasks = tasks_with_goal

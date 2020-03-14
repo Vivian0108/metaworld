@@ -1,3 +1,4 @@
+import pickle
 import pytest
 import numpy as np
 
@@ -27,16 +28,18 @@ def test_single_env_multi_goals_discrete(env_cls):
     assert multi_task_env._fully_discretized
     tasks_with_goals = multi_task_env.sample_tasks(2)
     for t in tasks_with_goals:
-        assert 'task' in t
-        assert 'goal' in t
+        data = pickle.loads(t.data)
+        assert 'task' in data
+        assert 'goal' in data
     multi_task_env.set_task(tasks_with_goals[0])
-    assert multi_task_env._active_task == tasks_with_goals[0]['task']
+    task_data = pickle.loads(tasks_with_goals[0].data)
+    assert multi_task_env._active_task == task_data['task']
     reset_obs = multi_task_env.reset()
     step_obs, _, _, _ = multi_task_env.step(multi_task_env.action_space.sample())
     assert np.all(multi_task_env.observation_space.shape == reset_obs.shape)
     assert np.all(multi_task_env.observation_space.shape == step_obs.shape)
-    assert reset_obs[multi_task_env._max_plain_dim:][tasks_with_goals[0]['goal']] == 1
-    assert step_obs[multi_task_env._max_plain_dim:][tasks_with_goals[0]['goal']] == 1
+    assert reset_obs[multi_task_env._max_plain_dim:][task_data['goal']] == 1
+    assert step_obs[multi_task_env._max_plain_dim:][task_data['goal']] == 1
     assert np.sum(reset_obs[multi_task_env._max_plain_dim:]) == 1
     assert np.sum(reset_obs[multi_task_env._max_plain_dim:]) == 1
 
@@ -67,10 +70,12 @@ def test_multienv_multigoals_fully_discretized(env_list):
 
     tasks_with_goals = multi_task_env.sample_tasks(2)
     for t in tasks_with_goals:
-        assert 'task' in t
-        assert 'goal' in t
+        data = pickle.loads(t.data)
+        assert 'task' in data
+        assert 'goal' in data
     multi_task_env.set_task(tasks_with_goals[0])
-    assert multi_task_env._active_task == tasks_with_goals[0]['task']
+    task_data = pickle.loads(tasks_with_goals[0].data)
+    assert multi_task_env._active_task == task_data['task']
 
     # check task id
     reset_obs = multi_task_env.reset()
@@ -78,8 +83,8 @@ def test_multienv_multigoals_fully_discretized(env_list):
     assert np.all(multi_task_env.observation_space.shape == reset_obs.shape)
     assert np.all(multi_task_env.observation_space.shape == step_obs.shape)
 
-    task_name = multi_task_env._task_names[tasks_with_goals[0]['task']]
-    goal = tasks_with_goals[0]['goal']
+    task_name = multi_task_env._task_names[task_data['task']]
+    goal = task_data['goal']
     plain_dim = multi_task_env._max_plain_dim
     task_start_index = multi_task_env._env_discrete_index[task_name] + multi_task_env.active_env._state_goal.shape[0]
 
@@ -114,8 +119,9 @@ def test_multienv_single_goal(env_list):
     assert len(tasks) == n_tasks
     for t in tasks:
         multi_task_env.set_task(t)
+        task = pickle.loads(t.data)
         assert isinstance(multi_task_env.active_env,\
-            env_cls_dict[multi_task_env._task_names[t % len(env_list)]])
+            env_cls_dict[multi_task_env._task_names[task['task'] % len(env_list)]])
 
 
 @pytest.mark.parametrize('env_list', [HARD_MODE_LIST[12:15]])
@@ -178,11 +184,12 @@ def test_reach_push_pick_place(env_cls):
         tasks = multi_task_env.sample_tasks(n_tasks)
         assert len(tasks) == n_tasks
         for t in tasks:
-            assert 'task' in t.keys()
-            assert 'goal' in t.keys()
+            data = pickle.loads(t.data)
+            assert 'task' in data
+            assert 'goal' in data
             multi_task_env.set_task(t)
             _ = multi_task_env.reset()
-            task_name = multi_task_env._task_names[t['task']]
+            task_name = multi_task_env._task_names[data['task']]
             goal = multi_task_env.active_env.goal
             assert np.array_equal(goal, goals_dict[task_name][0])
             assert multi_task_env.active_env.task_type == task_name
@@ -208,8 +215,9 @@ def test_ml3():
         tasks = multi_task_env.sample_tasks(3)
         assert len(tasks) == 3
         for t in tasks:
-            assert 'task' in t.keys()
-            assert 'goal' in t.keys()
+            data = pickle.loads(t.data)
+            assert 'task' in data
+            assert 'goal' in data
             multi_task_env.set_task(t)
             _ = multi_task_env.reset()
             goal = multi_task_env.active_env.goal
